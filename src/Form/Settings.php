@@ -173,7 +173,8 @@ class Settings extends ConfigFormBase {
   /**
    * Generate the Access Url.
    *
-   * @see details at https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAC/Authentication_Auth.html
+   * See details at
+   * https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAC/Authentication_Auth.html.
    *
    * @return string
    *   URL.
