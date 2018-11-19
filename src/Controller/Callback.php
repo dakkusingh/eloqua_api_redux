@@ -2,15 +2,10 @@
 
 namespace Drupal\eloqua_api_redux\Controller;
 
-use Drupal\Component\Serialization\Json;
-use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
-use Drupal\Core\Url;
+use Drupal\eloqua_api_redux\Service\EloquaApiClient;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
-use GuzzleHttp\Client as GuzzleClient;
-use GuzzleHttp\Exception\GuzzleException;
 
 /**
  * Class Eloqua API Callback Controller.
@@ -20,39 +15,20 @@ use GuzzleHttp\Exception\GuzzleException;
 class Callback extends ControllerBase {
 
   /**
-   * The logger factory.
+   * Eloqua API Client.
    *
-   * @var \Drupal\Core\Logger\LoggerChannelFactoryInterface
+   * @var \Drupal\eloqua_api_redux\Service\EloquaApiClient
    */
-  protected $loggerFactory;
+  private $eloquaClient;
 
   /**
-   * Editable Config.
+   * Callback constructor.
    *
-   * @var \Drupal\Core\Config\Config|\Drupal\Core\Config\ImmutableConfig
+   * @param \Drupal\eloqua_api_redux\Service\EloquaApiClient $eloquaClient
+   *   Eloqua API Client.
    */
-  private $configEditable;
-
-  /**
-   * Uneditable Config.
-   *
-   * @var \Drupal\Core\Config\Config|\Drupal\Core\Config\ImmutableConfig
-   */
-  private $config;
-
-  /**
-   * Callback Controller constructor.
-   *
-   * @param \Drupal\Core\Config\ConfigFactory $config
-   *   An instance of ConfigFactory.
-   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
-   *   LoggerChannelFactoryInterface.
-   */
-  public function __construct(ConfigFactory $config,
-                              LoggerChannelFactoryInterface $loggerFactory) {
-    $this->config = $config->get('eloqua_api_redux.settings');
-    $this->configEditable = $config->getEditable('eloqua_api_redux.settings');
-    $this->loggerFactory = $loggerFactory;
+  public function __construct(EloquaApiClient $eloquaClient) {
+    $this->eloquaClient = $eloquaClient;
   }
 
   /**
@@ -60,8 +36,7 @@ class Callback extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('config.factory'),
-      $container->get('logger.factory')
+      $container->get('eloqua_api_redux.client')
     );
   }
 
@@ -69,22 +44,20 @@ class Callback extends ControllerBase {
    * Callback URL for Eloqua API Auth.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
+   *   Request.
    *
    * @return array
+   *   Return markup for the page.
    */
   public function callbackUrl(Request $request) {
     $code = $request->get('code');
 
     // Try to get the token.
-    $token = $this->getToken($code);
+    $token = $this->eloquaClient->getTokenByAuthCode($code);
 
     // If token is not empty.
     if (!empty($token)) {
-      // Save the token.
-      $this->configEditable
-        ->set('access_token', $token['access_token'])
-        ->set('refresh_token', $token['refresh_token'])
-        ->save();
+      // Token save happens upstream.
       $markup = $this->t("Access token saved");
     }
     else {
@@ -92,59 +65,6 @@ class Callback extends ControllerBase {
     }
 
     return ['#markup' => $markup];
-  }
-
-  /**
-   * Fetch Eloqua API Token.
-   *
-   * Use the Grant Token to obtain an Access Token and Refresh
-   * Token using a POST request to the login.eloqua.com/auth/oauth2/token
-   * endpoint.
-   *
-   * @param $code
-   * Grant Token (which is in this case an Authorization Code).
-   *
-   * @return string|bool
-   * The authorization server validates the authorization code and if valid
-   * responds with a JSON body containing the Access Token, Refresh Token,
-   * access token expiration time, and token type
-   */
-  public function getToken($code) {
-    // Guzzle Client.
-    $guzzleClient = new GuzzleClient([
-      'base_uri' => $this->config->get('api_uri'),
-    ]);
-
-    try {
-      $response = $guzzleClient->request(
-        'POST',
-        'token',
-        [
-          'form_params' => [
-            'redirect_uri' => Url::fromUri('internal:/eloqua_api_redux/callback', ['absolute' => TRUE])->toString(),
-            'grant_type' => 'authorization_code',
-            'code' => $code,
-          ],
-          'auth' => [
-            $this->config->get('client_id'),
-            $this->config->get('client_secret')
-          ],
-        ]
-      );
-
-      if ($response->getStatusCode() == 200) {
-        // TODO Add debugging options.
-        $contents = $response->getBody()->getContents();
-        // ksm(Json::decode($contents));
-        return Json::decode($contents);
-      }
-    }
-    catch (GuzzleException $e) {
-      // TODO Add debugging options.
-      // kint($e);
-      $this->loggerFactory->get('eloqua_api_redux')->error("@message", ['@message' => $e->getMessage()]);
-      return FALSE;
-    }
   }
 
 }
