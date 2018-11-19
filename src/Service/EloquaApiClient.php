@@ -81,7 +81,7 @@ class EloquaApiClient {
   }
 
   /**
-   * Fetch Eloqua API Token by Auth Code.
+   * Fetch Eloqua API Token by Refresh Token.
    *
    * If the access token has expired, you should send your stored Refresh Token
    * to login.eloqua.com/auth/oauth2/token to obtain new tokens.
