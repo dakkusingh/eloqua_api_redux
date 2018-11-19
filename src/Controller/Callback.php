@@ -53,11 +53,10 @@ class Callback extends ControllerBase {
     $code = $request->get('code');
 
     // Try to get the token.
-    $token = $this->eloquaClient->getTokenByAuthCode($code);
+    $token = $this->eloquaClient->getAccessTokenByAuthCode($code);
 
-    // If token is not empty.
-    if (!empty($token)) {
-      // Token save happens upstream.
+    // If token is not false.
+    if ($token != FALSE) {
       $markup = $this->t("Access token saved");
     }
     else {

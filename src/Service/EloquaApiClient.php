@@ -3,6 +3,7 @@
 namespace Drupal\eloqua_api_redux\Service;
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Url;
@@ -44,16 +45,19 @@ class EloquaApiClient {
    *   An instance of ConfigFactory.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
    *   LoggerChannelFactoryInterface.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cacheBackend
    */
   public function __construct(ConfigFactory $config,
-                              LoggerChannelFactoryInterface $loggerFactory) {
+                              LoggerChannelFactoryInterface $loggerFactory,
+                              CacheBackendInterface $cacheBackend) {
     $this->config = $config->get('eloqua_api_redux.settings');
     $this->configEditable = $config->getEditable('eloqua_api_redux.settings');
     $this->loggerFactory = $loggerFactory;
+    $this->cacheBackend = $cacheBackend;
   }
 
   /**
-   * Fetch Eloqua API Token by Auth Code.
+   * Fetch Eloqua API Access Token by Auth Code.
    *
    * Use the Grant Token to obtain an Access Token and Refresh
    * Token using a POST request to the login.eloqua.com/auth/oauth2/token
@@ -67,7 +71,11 @@ class EloquaApiClient {
    *   responds with a JSON body containing the Access Token, Refresh Token,
    *   access token expiration time, and token type
    */
-  public function getTokenByAuthCode($code) {
+  public function getAccessTokenByAuthCode($code) {
+    if ($accessToken = $this->getTokenCache('access_token')) {
+      return $accessToken;
+    }
+
     $params = [
       'redirect_uri' => Url::fromUri('internal:/eloqua_api_redux/callback', ['absolute' => TRUE])->toString(),
       'grant_type' => 'authorization_code',
@@ -75,11 +83,16 @@ class EloquaApiClient {
     ];
 
     $token = $this->doTokenRequest($params);
-    return $token;
+
+    if (!empty($token)) {
+      return $token['accessToken'];
+    }
+    return FALSE;
+
   }
 
   /**
-   * Fetch Eloqua API Token by Refresh Token.
+   * Fetch Eloqua API Access Token by Refresh Token.
    *
    * If the access token has expired, you should send your stored Refresh Token
    * to login.eloqua.com/auth/oauth2/token to obtain new tokens.
@@ -89,7 +102,11 @@ class EloquaApiClient {
    *   a new access token, token type, access token expiration time, and
    *   new refresh token
    */
-  public function getTokenByRefreshToken() {
+  public function getAccessTokenByRefreshToken() {
+    if ($accessToken = $this->getTokenCache('access_token')) {
+      return $accessToken;
+    }
+
     $params = [
       'redirect_uri' => Url::fromUri('internal:/eloqua_api_redux/callback', ['absolute' => TRUE])->toString(),
       'grant_type' => 'refresh_token',
@@ -97,7 +114,11 @@ class EloquaApiClient {
     ];
 
     $token = $this->doTokenRequest($params);
-    return $token;
+
+    if (!empty($token)) {
+      return $token['access_token'];
+    }
+    return FALSE;
   }
 
   /**
@@ -133,11 +154,17 @@ class EloquaApiClient {
       );
 
       if ($response->getStatusCode() == 200) {
-        // TODO Add debugging options.
         $contents = $response->getBody()->getContents();
+        // TODO Add debugging options.
         // ksm(Json::decode($contents));
         $contentsDecoded = Json::decode($contents);
+
+        // TODO Tokens are saved in config as a form of persistent storage.
         $this->saveTokens($contentsDecoded);
+
+        // Set tokens in Cache for better expiry control.
+        $this->setTokenCache('access_token', $contentsDecoded['access_token']);
+        $this->setTokenCache('refresh_token', $contentsDecoded['refresh_token']);
 
         return $contentsDecoded;
       }
@@ -175,4 +202,50 @@ class EloquaApiClient {
     return FALSE;
   }
 
+  /**
+   * Get Access or Request Token from Cache.
+   *
+   * @return string|FALSE
+   */
+  public function getTokenCache($tokenType) {
+    $cid = 'eloqua_api_redux:' . $tokenType;
+    // Check cache.
+    if ($cache = $this->cacheBackend->get($cid)) {
+      $response = $cache->data;
+      // Return result from cache if found.
+      return $response;
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Set Token cache
+   *
+   * Authorization Codes expire in 60 seconds (intended for immediate use)
+   * Access Tokens expire in 8 hours
+   * Refresh Tokens expire in 1 year
+   * Refresh Tokens will expire immediately after being used to obtain new
+   * tokens, or after 1 year if they are not used to obtain new tokens
+   *
+   * @param $tokenType
+   * What type of token is it?
+   *
+   */
+  public function setTokenCache($tokenType, $token) {
+    $cacheAge = 0;
+
+    if ($tokenType == 'access_token') {
+      // Cache for 8 hours.
+      $cacheAge = 28800;
+    }
+    if ($tokenType == 'refresh_token') {
+      // Cache for 1 year.
+      $cacheAge = 31557600;
+    }
+
+    $cid = 'eloqua_api_redux:' . $tokenType;
+    // TODO Meh this will get cleared when the site caches are being cleared
+    $this->cacheBackend->set($cid, $token, time() + $cacheAge);
+  }
 }

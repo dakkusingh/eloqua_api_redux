@@ -1,4 +1,4 @@
 services:
   eloqua_api_redux.client:
     class: Drupal\eloqua_api_redux\Service\EloquaApiClient
-    arguments: ['@config.factory', '@logger.factory']
+    arguments: ['@config.factory', '@logger.factory', '@cache.default']
