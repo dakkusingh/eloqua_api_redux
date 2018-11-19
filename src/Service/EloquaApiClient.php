@@ -75,8 +75,6 @@ class EloquaApiClient {
     ];
 
     $token = $this->doTokenRequest($params);
-    $this->saveTokens($token);
-
     return $token;
   }
 
@@ -95,11 +93,10 @@ class EloquaApiClient {
     $params = [
       'redirect_uri' => Url::fromUri('internal:/eloqua_api_redux/callback', ['absolute' => TRUE])->toString(),
       'grant_type' => 'refresh_token',
+      'refresh_token' => $this->config->get('refresh_token'),
     ];
 
     $token = $this->doTokenRequest($params);
-    $this->saveTokens($token);
-
     return $token;
   }
 
@@ -140,13 +137,14 @@ class EloquaApiClient {
         $contents = $response->getBody()->getContents();
         // ksm(Json::decode($contents));
         $contentsDecoded = Json::decode($contents);
+        $this->saveTokens($contentsDecoded);
 
         return $contentsDecoded;
       }
     }
     catch (GuzzleException $e) {
       // TODO Add debugging options.
-      // kint($e);
+      // ksm($e);
       $this->loggerFactory->get('eloqua_api_redux')->error("@message", ['@message' => $e->getMessage()]);
       return FALSE;
     }
