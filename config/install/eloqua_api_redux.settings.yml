@@ -4,4 +4,3 @@ access_token: ''
 refresh_token: ''
 api_uri: 'https://login.eloqua.com/auth/oauth2/'
 api_base_uri: ''
-api_cache_maximum_age: 86400
