@@ -95,29 +95,21 @@ class Settings extends ConfigFormBase {
     if ($config->get('client_id') != '' && $config->get('client_secret') != '') {
       $options = ['attributes' => ['target' => '_blank']];
 
-      $form['client']['access_token'] = [
-        '#type' => 'textfield',
-        '#title' => $this->t('Access Token'),
-        '#default_value' => $config->get('access_token'),
-        '#disabled' => TRUE,
-        '#description' => $this->t('Access Tokens expire in 8 hours. To get your Access Token, @link.',
+      // TODO Figure out a nicer way to display the link. Maybe a button?
+      $form['client']['tokens'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Access and Refresh Tokens'),
+        '#description' => $this->t('To get your Tokens, @link.',
           [
             '@link' => Link::fromTextAndUrl('click here', Url::fromUri($this->accessUrl(), $options))->toString(),
           ]),
-      ];
-
-      $form['client']['refresh_token'] = [
-        '#type' => 'textfield',
-        '#title' => $this->t('Refresh Token'),
-        '#disabled' => TRUE,
-        '#description' => $this->t('Refresh Tokens expire after 1 year if they are not used to obtain new tokens. To get your Refresh Token, @link.',
-          [
-            '@link' => Link::fromTextAndUrl('click here', Url::fromUri($this->accessUrl(), $options))->toString(),
-          ]),
-        '#default_value' => $config->get('refresh_token'),
+        '#open' => TRUE,
+        '#access' => TRUE,
       ];
     }
 
+//    $foo2 = \Drupal::service('eloqua_api_redux.client')->getAccessTokenByRefreshToken();
+//    ksm($foo2);
     return parent::buildForm($form, $form_state);
   }
 
@@ -128,8 +120,6 @@ class Settings extends ConfigFormBase {
     $this->config('eloqua_api_redux.settings')
       ->set('client_id', $form_state->getValue('client_id'))
       ->set('client_secret', $form_state->getValue('client_secret'))
-      ->set('access_token', $form_state->getValue('access_token'))
-      ->set('refresh_token', $form_state->getValue('refresh_token'))
       ->save();
 
     parent::submitForm($form, $form_state);
