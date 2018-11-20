@@ -106,7 +106,8 @@ class EloquaApiClient {
     if ($accessToken = $this->getTokenCache('access_token')) {
       return $accessToken;
     }
-
+    
+    // TODO Add better handling for expired refresh tokens.
     $params = [
       'redirect_uri' => Url::fromUri('internal:/eloqua_api_redux/callback', ['absolute' => TRUE])->toString(),
       'grant_type' => 'refresh_token',
@@ -171,6 +172,7 @@ class EloquaApiClient {
     }
     catch (GuzzleException $e) {
       // TODO Add debugging options.
+      // TODO Add better handling for expired refresh & access tokens.
       // ksm($e);
       $this->loggerFactory->get('eloqua_api_redux')->error("@message", ['@message' => $e->getMessage()]);
       return FALSE;
@@ -205,7 +207,7 @@ class EloquaApiClient {
   /**
    * Get Access or Request Token from Cache.
    *
-   * @return string|FALSE
+   * @return string|false
    */
   public function getTokenCache($tokenType) {
     $cid = 'eloqua_api_redux:' . $tokenType;
@@ -220,17 +222,16 @@ class EloquaApiClient {
   }
 
   /**
-   * Set Token cache
+   * Set Token cache.
    *
    * Authorization Codes expire in 60 seconds (intended for immediate use)
    * Access Tokens expire in 8 hours
    * Refresh Tokens expire in 1 year
    * Refresh Tokens will expire immediately after being used to obtain new
-   * tokens, or after 1 year if they are not used to obtain new tokens
+   * tokens, or after 1 year if they are not used to obtain new tokens.
    *
    * @param $tokenType
-   * What type of token is it?
-   *
+   *   What type of token is it?
    */
   public function setTokenCache($tokenType, $token) {
     $cacheAge = 0;
@@ -245,7 +246,8 @@ class EloquaApiClient {
     }
 
     $cid = 'eloqua_api_redux:' . $tokenType;
-    // TODO Meh this will get cleared when the site caches are being cleared
+    // TODO Meh this will get cleared when the site caches are being cleared.
     $this->cacheBackend->set($cid, $token, time() + $cacheAge);
   }
+
 }

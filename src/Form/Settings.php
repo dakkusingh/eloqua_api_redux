@@ -117,7 +117,7 @@ class Settings extends ConfigFormBase {
         '#default_value' => $config->get('refresh_token'),
       ];
     }
-    
+
     return parent::buildForm($form, $form_state);
   }
 
