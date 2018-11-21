@@ -39,6 +39,13 @@ class EloquaApiClient {
   private $config;
 
   /**
+   * Guzzle Client.
+   *
+   * @var \GuzzleHttp\Client
+   */
+  private $guzzleClient;
+
+  /**
    * Callback Controller constructor.
    *
    * @param \Drupal\Core\Config\ConfigFactory $config
@@ -340,6 +347,45 @@ class EloquaApiClient {
     }
 
     return FALSE;
+  }
+
+  public function doEloquaApiRequest($verb, $endpoint, $obj = NULL) {
+    // TODO Ideally merge all the Guzzle requests into one generic method.
+    // Guzzle Client.
+    $guzzleClient = new GuzzleClient([
+      // TODO Move this into Config?
+      'base_uri' => $this->getBaseUrl(),
+      'headers' => [
+        'Authorization' => 'bearer ' . $this->getAccessTokenByRefreshToken(),
+        'Content-Type' => 'application/json',
+      ],
+    ]);
+
+    $allParams = [];
+    if ($obj) {
+      $allParams = ['body' => json_encode($obj)];
+    }
+
+    try {
+      $response = $guzzleClient->request($verb, $endpoint, $allParams);
+
+      // See https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAB/Developers/GettingStarted/API%20requests/http-status-codes.htm?cshid=HTTPStatusCodes
+      if ($response->getStatusCode() == 200 || $response->getStatusCode() == 201 || $response->getStatusCode() == 204) {
+        $contents = $response->getBody()->getContents();
+        // TODO Add debugging options.
+//        ksm($contents);
+         ksm(Json::decode($contents));
+        $contentsDecoded = Json::decode($contents);
+        return $contentsDecoded;
+      }
+    }
+    catch (GuzzleException $e) {
+      // TODO Add debugging options.
+      // TODO Add better handling for expired refresh & access tokens.
+       ksm($e);
+      $this->loggerFactory->get('eloqua_api_redux')->error("@message", ['@message' => $e->getMessage()]);
+      return [];
+    }
   }
 
 }
