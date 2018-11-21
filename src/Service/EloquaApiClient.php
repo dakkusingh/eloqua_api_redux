@@ -170,6 +170,9 @@ class EloquaApiClient {
         $this->setEloquaApiCache('access_token', $contentsDecoded['access_token']);
         $this->setEloquaApiCache('refresh_token', $contentsDecoded['refresh_token']);
 
+        // Also update the base urls.
+        $this->doBaseUrlRequest();
+
         return $contentsDecoded;
       }
     }
