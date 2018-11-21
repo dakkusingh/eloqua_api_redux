@@ -46,6 +46,7 @@ class EloquaApiClient {
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
    *   LoggerChannelFactoryInterface.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cacheBackend
+   *   Cache Backend.
    */
   public function __construct(ConfigFactory $config,
                               LoggerChannelFactoryInterface $loggerFactory,
@@ -72,7 +73,7 @@ class EloquaApiClient {
    *   access token expiration time, and token type
    */
   public function getAccessTokenByAuthCode($code) {
-    if ($accessToken = $this->getTokenCache('access_token')) {
+    if ($accessToken = $this->getEloquaApiCache('access_token')) {
       return $accessToken;
     }
 
@@ -103,12 +104,12 @@ class EloquaApiClient {
    *   new refresh token
    */
   public function getAccessTokenByRefreshToken() {
-    if ($accessToken = $this->getTokenCache('access_token')) {
+    if ($accessToken = $this->getEloquaApiCache('access_token')) {
       return $accessToken;
     }
 
     // Only do a request if we have a valid refresh token.
-    if ($refreshToken = $this->getTokenCache('refresh_token')) {
+    if ($refreshToken = $this->getEloquaApiCache('refresh_token')) {
       // TODO Add better handling for expired refresh tokens.
       $params = [
         'redirect_uri' => Url::fromUri('internal:/eloqua_api_redux/callback', ['absolute' => TRUE])->toString(),
@@ -130,7 +131,7 @@ class EloquaApiClient {
   }
 
   /**
-   * Do the Request.
+   * Do the Token Request.
    *
    * @param array $params
    *   Options to pass for Guzzle Request to Eloqua.
@@ -148,18 +149,16 @@ class EloquaApiClient {
       'base_uri' => $this->config->get('api_uri'),
     ]);
 
+    $allParams = [
+      'form_params' => $params,
+      'auth' => [
+        $this->config->get('client_id'),
+        $this->config->get('client_secret'),
+      ],
+    ];
+
     try {
-      $response = $guzzleClient->request(
-        'POST',
-        $res,
-        [
-          'form_params' => $params,
-          'auth' => [
-            $this->config->get('client_id'),
-            $this->config->get('client_secret'),
-          ],
-        ]
-      );
+      $response = $guzzleClient->request('POST', $res, $allParams);
 
       if ($response->getStatusCode() == 200) {
         $contents = $response->getBody()->getContents();
@@ -168,7 +167,8 @@ class EloquaApiClient {
         $contentsDecoded = Json::decode($contents);
 
         // TODO Tokens are saved in config as a form of persistent storage.
-        $this->setTokenCache($contentsDecoded);
+        $this->setEloquaApiCache('access_token', $contentsDecoded['access_token']);
+        $this->setEloquaApiCache('refresh_token', $contentsDecoded['refresh_token']);
 
         return $contentsDecoded;
       }
@@ -178,59 +178,158 @@ class EloquaApiClient {
       // TODO Add better handling for expired refresh & access tokens.
       // ksm($e);
       $this->loggerFactory->get('eloqua_api_redux')->error("@message", ['@message' => $e->getMessage()]);
-      return FALSE;
+      return [];
     }
   }
 
   /**
-   * Save newly refreshed tokens.
+   * Get Cache Age.
    *
-   * @param array $token
-   *   New tokens.
+   * Authorization Codes expire in 60 seconds (intended for immediate use)
+   * Access Tokens expire in 8 hours
+   * Refresh Tokens expire in 1 year
+   * Refresh Tokens will expire immediately after being used to obtain new
+   * tokens, or after 1 year if they are not used to obtain new tokens.
    *
-   * @return true|false
-   *   Did we save the tokens or not?
+   * @param string $key
+   *   What type of token is it?
+   *
+   * @return int
+   *   Token age.
    */
-  private function setTokenCache(array $token) {
-    if (!empty($token)) {
-      // Save the token.
-      $accessToken = [
-        'value' => $token['access_token'],
-        'expire' => REQUEST_TIME + $this->tokenAge('access_token'),
-      ];
+  private function eloquaApiCacheAge($key) {
+    $cacheAge = 0;
 
-      $refreshToken = [
-        'value' => $token['refresh_token'],
-        'expire' => REQUEST_TIME + $this->tokenAge('refresh_token'),
-      ];
+    // Offset a little so we can refresh before time.
+    $offset = 3600;
 
-      $this->configTokens
-        ->set('access_token', serialize($accessToken))
-        ->set('refresh_token', serialize($refreshToken))
-        ->save();
-
-      // TODO Maybe add some logging?
-      return TRUE;
+    // Cache access_tokens and base URLs for same amount of time.
+    if ($key == 'access_token' || $key == 'api_base_uri') {
+      // Cache for 8 hours.
+      $cacheAge = 28800;
     }
+    if ($key == 'refresh_token') {
+      // Cache for 1 year.
+      $cacheAge = 31557600;
+    }
+
+    return $cacheAge - $offset;
+  }
+
+  /**
+   * Get Base URL.
+   *
+   * @return false|string
+   *   Base Url.
+   */
+  public function getBaseUrl() {
+    if ($baseUrl = $this->getEloquaApiCache('api_base_uri')) {
+      return $baseUrl;
+    }
+
+    // Not found in Cache, lets get it from source.
+    $data = $this->doBaseUrlRequest();
+    if (!empty($data)) {
+      return $data['urls']['base'];
+    }
+  }
+
+  /**
+   * Determining base URLs.
+   *
+   * Eloqua supports multiple data centers, and the https://login.eloqua.com/id
+   * endpoint allows you to interface with Eloqua regardless of where the
+   * Eloqua install is located.
+   *
+   * It's important to validate your base URL before making any API calls.
+   * If you don't validate, your API calls may not work. New Eloqua users may
+   * be added to different data centers, and some Eloqua instances may
+   * periodically move between data centers. There are many cases where the
+   * base URL used for API access would change.
+   *
+   * The https://login.eloqua.com/id endpoint should be used to determine
+   * the base URL for your API calls.
+   *
+   * See more details at:
+   * https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAC/DeterminingBaseURL.html
+   *
+   * @return array
+   *   The endpoint, when called using basic authentication or OAuth,
+   *   will return details about the URLs you should be using.
+   */
+  private function doBaseUrlRequest() {
+    // TODO Ideally merge all the Guzzle requests into one generic method.
+    // Guzzle Client.
+    $guzzleClient = new GuzzleClient([
+      // TODO Move this into Config?
+      'base_uri' => 'https://login.eloqua.com/',
+      'headers' => [
+        'Authorization' => 'bearer ' . $this->getAccessTokenByRefreshToken(),
+      ],
+    ]);
+
+    try {
+      $response = $guzzleClient->request('GET', 'id', []);
+      if ($response->getStatusCode() == 200) {
+        $contents = $response->getBody()->getContents();
+        // TODO Add debugging options.
+        // ksm(Json::decode($contents));
+        $contentsDecoded = Json::decode($contents);
+        // TODO Base Urls are saved in config as a form of persistent storage.
+        $this->setEloquaApiCache('api_base_uri', $contentsDecoded['urls']['base']);
+        return $contentsDecoded;
+      }
+    }
+    catch (GuzzleException $e) {
+      // TODO Add debugging options.
+      // TODO Add better handling for expired refresh & access tokens.
+      // ksm($e);
+      $this->loggerFactory->get('eloqua_api_redux')->error("@message", ['@message' => $e->getMessage()]);
+      return [];
+    }
+  }
+
+  /**
+   * Eloqua API Cache Setter.
+   *
+   * @param string $key
+   *   Cache ID.
+   * @param string $value
+   *   Cache Value.
+   *
+   * @return bool
+   *   Status.
+   */
+  private function setEloquaApiCache($key, $value) {
+    // Save the token.
+    $cacheItem = [
+      'value' => $value,
+      'expire' => REQUEST_TIME + $this->eloquaApiCacheAge($key),
+    ];
+
+    $this->configTokens
+      ->set($key, serialize($cacheItem))
+      ->save();
 
     // TODO Maybe add some logging?
-    return FALSE;
+    return TRUE;
   }
 
   /**
-   * Get Access or Request Token from "config cache".
+   * Get Eloqua API cache from "config cache".
    *
    * @return string|false
+   *   Cache result.
    */
-  public function getTokenCache($tokenType) {
+  private function getEloquaApiCache($type) {
     // Check config "cache".
-    if ($cache = $this->configTokens->get($tokenType)) {
+    if ($cache = $this->configTokens->get($type)) {
       $response = unserialize($cache);
 
       $now = REQUEST_TIME;
       $expire = $response['expire'];
 
-      // Manually validate if the token is still fresh
+      // Manually validate if the token is still fresh.
       if ($expire > $now) {
         // Return result from cache if found.
         return $response['value'];
@@ -238,32 +337,6 @@ class EloquaApiClient {
     }
 
     return FALSE;
-  }
-
-  /**
-   * Get Cache Age.
-   *
-   * @param $tokenType
-   *   What type of token is it?
-   *
-   * @return int
-   * Token age.
-   */
-  private function tokenAge($tokenType) {
-    $cacheAge = 0;
-    $offset = 3600;
-
-    if ($tokenType == 'access_token') {
-      // Cache for 8 hours.
-      // Offset a little so we can refresh before time.
-      $cacheAge = 28800 - $offset;
-    }
-    if ($tokenType == 'refresh_token') {
-      // Cache for 1 year.
-      $cacheAge = 31557600 - $offset;
-    }
-
-    return $cacheAge;
   }
 
 }
