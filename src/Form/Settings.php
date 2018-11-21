@@ -65,6 +65,7 @@ class Settings extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('eloqua_api_redux.settings');
+    $tokenConf = $this->config('eloqua_api_redux.tokens');
 
     $form['client'] = [
       '#type' => 'fieldset',
@@ -94,22 +95,26 @@ class Settings extends ConfigFormBase {
 
     if ($config->get('client_id') != '' && $config->get('client_secret') != '') {
       $options = ['attributes' => ['target' => '_blank']];
+      // Just check if any of the tokens are set, if not set a message.
+      if ($tokenConf->get('access_token') == NULL) {
+        $msg = $this->t('Tokens are not set, to get your Tokens, @link.', ['@link' => Link::fromTextAndUrl('click here', Url::fromUri($this->accessUrl(), $options))->toString()]);
+        // TODO fix the deprecated drupal_set_message
+        drupal_set_message($msg, 'error');
+      }
 
       // TODO Figure out a nicer way to display the link. Maybe a button?
       $form['client']['tokens'] = [
         '#type' => 'details',
         '#title' => $this->t('Access and Refresh Tokens'),
-        '#description' => $this->t('To get your Tokens, @link.',
-          [
-            '@link' => Link::fromTextAndUrl('click here', Url::fromUri($this->accessUrl(), $options))->toString(),
-          ]),
+        '#description' => $this->t('To get your Tokens, @link.', ['@link' => Link::fromTextAndUrl('click here', Url::fromUri($this->accessUrl(), $options))->toString(),]),
         '#open' => TRUE,
         '#access' => TRUE,
       ];
     }
 
-//    $foo2 = \Drupal::service('eloqua_api_redux.client')->getAccessTokenByRefreshToken();
-//    ksm($foo2);
+//     $foo2 = \Drupal::service('eloqua_api_redux.client')->getAccessTokenByRefreshToken();
+//    $foo2 = \Drupal::service('eloqua_api_redux.client')->getBaseUrl();
+//     ksm($foo2);
     return parent::buildForm($form, $form_state);
   }
 
