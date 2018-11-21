@@ -3,8 +3,10 @@
 namespace Drupal\eloqua_api_redux\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Url;
 use Drupal\eloqua_api_redux\Service\EloquaApiClient;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -57,13 +59,15 @@ class Callback extends ControllerBase {
 
     // If token is not false.
     if ($token != FALSE) {
-      $markup = $this->t("Access token saved");
+      // TODO fix the deprecated drupal_set_message
+      drupal_set_message('Access tokens saved');
     }
     else {
-      $markup = $this->t("Failed to get access token. Check log messages.");
+      // TODO fix the deprecated drupal_set_message
+      drupal_set_message('Failed to get access token. Check log messages.', 'error');
     }
 
-    return ['#markup' => $markup];
+    return new RedirectResponse(Url::fromRoute('eloqua_api_redux.settings')->toString());
   }
 
 }
