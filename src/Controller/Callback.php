@@ -59,11 +59,11 @@ class Callback extends ControllerBase {
 
     // If token is not false.
     if ($token != FALSE) {
-      // TODO fix the deprecated drupal_set_message
+      // TODO fix the deprecated drupal_set_message.
       drupal_set_message('Access tokens saved');
     }
     else {
-      // TODO fix the deprecated drupal_set_message
+      // TODO fix the deprecated drupal_set_message.
       drupal_set_message('Failed to get access token. Check log messages.', 'error');
     }
 

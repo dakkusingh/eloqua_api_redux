@@ -98,7 +98,7 @@ class Settings extends ConfigFormBase {
       // Just check if any of the tokens are set, if not set a message.
       if ($tokenConf->get('access_token') == NULL) {
         $msg = $this->t('Tokens are not set, to get your Tokens, @link.', ['@link' => Link::fromTextAndUrl('click here', Url::fromUri($this->accessUrl(), $options))->toString()]);
-        // TODO fix the deprecated drupal_set_message
+        // TODO fix the deprecated drupal_set_message.
         drupal_set_message($msg, 'error');
       }
 
@@ -106,15 +106,12 @@ class Settings extends ConfigFormBase {
       $form['client']['tokens'] = [
         '#type' => 'details',
         '#title' => $this->t('Access and Refresh Tokens'),
-        '#description' => $this->t('To get your Tokens, @link.', ['@link' => Link::fromTextAndUrl('click here', Url::fromUri($this->accessUrl(), $options))->toString(),]),
+        '#description' => $this->t('To get your Tokens, @link.', ['@link' => Link::fromTextAndUrl('click here', Url::fromUri($this->accessUrl(), $options))->toString()]),
         '#open' => TRUE,
         '#access' => TRUE,
       ];
     }
 
-//     $foo2 = \Drupal::service('eloqua_api_redux.client')->getAccessTokenByRefreshToken();
-//    $foo2 = \Drupal::service('eloqua_api_redux.client')->getBaseUrl();
-//     ksm($foo2);
     return parent::buildForm($form, $form_state);
   }
 
