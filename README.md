@@ -1,3 +1,11 @@
+## Eloqua API Resources
+https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAB/Developers/api_lp.htm
+https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAC/rest-endpoints.html
+https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAB/Developers/BulkAPI/bulk-API.htm
+
+V1 vs V2
+https://community.oracle.com/thread/3700267
+
 ## Managing oAuth Tokens
 ### My token has expired!
 First, that is a good thing. Tokens are like cash, if you have it you 
