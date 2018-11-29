@@ -61,3 +61,33 @@ $contactService = \Drupal::service('eloqua_api_redux.contact');
 $id = 1234;
 $contact = $contactService->deleteContact($id);
 ```
+
+## Forms
+
+### Create a Form Submission
+Example:
+```
+$contactService = \Drupal::service('eloqua_api_redux.forms');
+
+$formData = [
+  'fieldValues' => [
+    [
+      'type' => 'FormField',
+      'id' => '724',
+      'value' => 'dakku+singh123@example.org',
+    ],
+    [
+      'type' => 'FormField',
+      'id' => '726',
+      'value' => 'Dakku 123',
+    ],
+    [
+      'type' => 'FormField',
+      'id' => '727',
+      'value' => 'Singh 123',
+    ],
+  ]
+];
+
+$submission = $contactService->createFormData(71, $formData);
+```
