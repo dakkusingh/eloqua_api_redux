@@ -350,7 +350,19 @@ class EloquaApiClient {
   }
 
   /**
+   * Make the request to Eloqua.
    *
+   * @param string $verb
+   *   GET POST etc.
+   * @param string $endpoint
+   *   Endpoint to call.
+   * @param null $body
+   *   Body for request.
+   * @param null $queryParams
+   *   Additional Params to pass.
+   *
+   * @return array
+   *   Results.
    */
   public function doEloquaApiRequest($verb, $endpoint, $body = NULL, $queryParams = NULL) {
     // TODO Ideally merge all the Guzzle requests into one generic method.
