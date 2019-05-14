@@ -1,0 +1,5 @@
+eloqua_api_auth_fallback.settings:
+  title: 'Eloqua API Authentication Settings'
+  route_name: eloqua_api_redux.settings
+  description: 'Configure Eloqua API Authentication Settings.'
+  parent: eloqua_api_redux.settings
