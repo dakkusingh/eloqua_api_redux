@@ -6,11 +6,12 @@ use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\eloqua_api_redux\Service\EloquaApiClient;
 use Drush\Commands\DrushCommands;
+use Drupal\eloqua_api_redux\Service\EloquaAuthFallbackInterface;
 
 /**
- * A drush command for eloqua api authentication module.
+ * A drush command for eloqua api authentication using resource owner grants.
  */
-class EloquaAuthTokensGenerate extends DrushCommands {
+class EloquaAuthTokensGenerate extends DrushCommands implements EloquaAuthFallbackInterface {
 
   /**
    * Immutable Config.
@@ -63,8 +64,11 @@ class EloquaAuthTokensGenerate extends DrushCommands {
    * @usage eloqua_api_auth_fallback:generate-tokens
    *   Calls eloqua authentication API and generate tokens
    *   using Resource Owner Password Credentials grant.
+   *
+   * @return bool
+   *   TRUE if tokens are generated/renewed from eloqua API.
    */
-  public function generateTokens() {
+  public function generateTokensByResourceOwner() {
     $sitename = $this->configSettings->get('sitename');
     $username = $this->configSettings->get('username');
     $password = $this->configSettings->get('password');
@@ -90,12 +94,6 @@ class EloquaAuthTokensGenerate extends DrushCommands {
         ->writeln($message);
       $this->loggerFactory->get('eloqua_api_auth_fallback')->info($message);
       return TRUE;
-    }
-    else {
-      $message = 'Error updating refresh and access tokens.';
-      $this->output()
-        ->writeln($message);
-      $this->loggerFactory->get('eloqua_api_auth_fallback')->error($message);
     }
 
     return FALSE;

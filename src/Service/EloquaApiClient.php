@@ -134,16 +134,16 @@ class EloquaApiClient {
       // If both access and refresh tokens are expired/invalid use fallback
       // method to generate access and refresh tokens using resource owner
       // password grant authorization.
-      // Also make sure that auth fallback service exists i.e. module that
-      // holds this service is enabled.
-      if (\Drupal::hasService('eloqua_api_auth_fallback.commands')) {
-        $tokenGeneratorService = \Drupal::service('eloqua_api_auth_fallback.commands');
-        $tokenGeneratorService->generateTokens();
-        if ($accessToken = $this->getEloquaApiCache('access_token')) {
+      // Also make sure that auth fallback service implementation exists.
+      $tokenGeneratorService = \Drupal::service('eloqua_api_redux.auth_fallback_default');
+      if ($tokenGeneratorService !== NULL) {
+        $response = $tokenGeneratorService->generateTokensByResourceOwner();
+        if ($response === TRUE && $accessToken = $this->getEloquaApiCache('access_token')) {
           return $accessToken;
         }
       }
-      $this->loggerFactory->get('eloqua_api_redux')->error("Refresh Token is expired, Update tokens by visiting Eloqua API settings page.");
+      $this->loggerFactory->get('eloqua_api_redux')
+        ->error("Refresh Token is expired, Update tokens by visiting Eloqua API settings page.");
     }
 
     return FALSE;

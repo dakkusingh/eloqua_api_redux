@@ -32,23 +32,26 @@ class Settings extends ConfigFormBase {
 
     $form['credentials'] = [
       '#type' => 'fieldset',
-      '#title' => $this->t('Eloqua Instance Authentication Credentials'),
+      '#title' => $this->t('Eloqua API resource owner password credentials'),
     ];
 
     $form['credentials']['sitename'] = [
       '#type' => 'textfield',
+      '#required' => TRUE,
       '#title' => $this->t('Instance/Site Name'),
       '#default_value' => $config->get('sitename'),
     ];
 
     $form['credentials']['username'] = [
       '#type' => 'textfield',
+      '#required' => TRUE,
       '#title' => $this->t('Username'),
       '#default_value' => $config->get('username'),
     ];
 
     $form['credentials']['password'] = [
       '#type' => 'textfield',
+      '#required' => TRUE,
       '#title' => $this->t('Password'),
       '#default_value' => $config->get('password'),
     ];

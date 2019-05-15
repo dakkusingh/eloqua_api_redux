@@ -2,6 +2,6 @@ eloqua_api_auth_fallback.settings:
   path: 'admin/config/services/eloqua_api_redux/auth_settings'
   defaults:
     _form:  '\Drupal\eloqua_api_auth_fallback\Form\Settings'
-    _title: 'Eloqua API Authentication Settings'
+    _title: 'Configure Eloqua API resource owner password credentials'
   requirements:
     _permission: 'administer eloqua api settings'
