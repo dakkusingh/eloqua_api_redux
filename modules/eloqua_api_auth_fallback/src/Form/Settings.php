@@ -4,6 +4,8 @@ namespace Drupal\eloqua_api_auth_fallback\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
 
 /**
  * Eloqua API Fallback Authentication Settings.
@@ -35,10 +37,20 @@ class Settings extends ConfigFormBase {
       '#title' => $this->t('Eloqua API resource owner password credentials'),
     ];
 
+    $form['credentials']['help'] = [
+      '#type' => '#markup',
+      '#markup' => $this->t('For more information on authenticate using a resource owner password credentials grant, refer this @link.',
+        [
+          '@link' => Link::fromTextAndUrl('https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAB/Developers/GettingStarted/Authentication/authenticate-using-oauth.htm#resource-owner-password-credentials-grant',
+            Url::fromUri('https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAB/Developers/GettingStarted/Authentication/authenticate-using-oauth.htm#resource-owner-password-credentials-grant'))->toString(),
+        ]),
+    ];
+
     $form['credentials']['sitename'] = [
       '#type' => 'textfield',
       '#required' => TRUE,
       '#title' => $this->t('Instance/Site Name'),
+      '#description' => $this->t('Site name is the company name you use to log in to Eloqua'),
       '#default_value' => $config->get('sitename'),
     ];
 
@@ -46,6 +58,7 @@ class Settings extends ConfigFormBase {
       '#type' => 'textfield',
       '#required' => TRUE,
       '#title' => $this->t('Username'),
+      '#description' => $this->t('Username you use to log in to Eloqua'),
       '#default_value' => $config->get('username'),
     ];
 
@@ -53,6 +66,7 @@ class Settings extends ConfigFormBase {
       '#type' => 'textfield',
       '#required' => TRUE,
       '#title' => $this->t('Password'),
+      '#description' => $this->t('Password you use to log in to Eloqua'),
       '#default_value' => $config->get('password'),
     ];
 
