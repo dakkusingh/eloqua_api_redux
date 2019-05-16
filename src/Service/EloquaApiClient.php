@@ -54,18 +54,18 @@ class EloquaApiClient {
    *   LoggerChannelFactoryInterface.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cacheBackend
    *   Cache Backend.
-   * @param \Drupal\Core\Http\ClientFactory $http_client_factory
+   * @param \Drupal\Core\Http\ClientFactory $httpClientFactory
    *   A Guzzle client object.
    */
   public function __construct(ConfigFactory $config,
                               LoggerChannelFactoryInterface $loggerFactory,
                               CacheBackendInterface $cacheBackend,
-                              ClientFactory $http_client_factory) {
+                              ClientFactory $httpClientFactory) {
     $this->config = $config->get('eloqua_api_redux.settings');
     $this->configTokens = $config->getEditable('eloqua_api_redux.tokens');
     $this->loggerFactory = $loggerFactory;
     $this->cacheBackend = $cacheBackend;
-    $this->httpClientFactory = $http_client_factory;
+    $this->httpClientFactory = $httpClientFactory;
   }
 
   /**
