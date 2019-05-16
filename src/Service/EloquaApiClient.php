@@ -7,7 +7,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Url;
-use GuzzleHttp\Client as GuzzleClient;
+use Drupal\Core\Http\ClientFactory;
 use GuzzleHttp\Exception\GuzzleException;
 
 /**
@@ -39,11 +39,11 @@ class EloquaApiClient {
   private $config;
 
   /**
-   * Guzzle Client.
+   * The HTTP client to fetch the API data.
    *
-   * @var \GuzzleHttp\Client
+   * @var \Drupal\Core\Http\ClientFactory
    */
-  private $guzzleClient;
+  protected $httpClientFactory;
 
   /**
    * Callback Controller constructor.
@@ -54,14 +54,18 @@ class EloquaApiClient {
    *   LoggerChannelFactoryInterface.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cacheBackend
    *   Cache Backend.
+   * @param \Drupal\Core\Http\ClientFactory $http_client_factory
+   *   A Guzzle client object.
    */
   public function __construct(ConfigFactory $config,
                               LoggerChannelFactoryInterface $loggerFactory,
-                              CacheBackendInterface $cacheBackend) {
+                              CacheBackendInterface $cacheBackend,
+                              ClientFactory $http_client_factory) {
     $this->config = $config->get('eloqua_api_redux.settings');
     $this->configTokens = $config->getEditable('eloqua_api_redux.tokens');
     $this->loggerFactory = $loggerFactory;
     $this->cacheBackend = $cacheBackend;
+    $this->httpClientFactory = $http_client_factory;
   }
 
   /**
@@ -152,7 +156,7 @@ class EloquaApiClient {
    */
   private function doTokenRequest(array $params, $res = 'token') {
     // Guzzle Client.
-    $guzzleClient = new GuzzleClient([
+    $guzzleClient = $this->httpClientFactory->fromOptions([
       'base_uri' => $this->config->get('api_uri'),
     ]);
 
@@ -270,7 +274,7 @@ class EloquaApiClient {
   private function doBaseUrlRequest() {
     // TODO Ideally merge all the Guzzle requests into one generic method.
     // Guzzle Client.
-    $guzzleClient = new GuzzleClient([
+    $guzzleClient = $this->httpClientFactory->fromOptions([
       // TODO Move this into Config?
       'base_uri' => 'https://login.eloqua.com/',
       'headers' => [
@@ -367,7 +371,7 @@ class EloquaApiClient {
   public function doEloquaApiRequest($verb, $endpoint, $body = NULL, $queryParams = NULL) {
     // TODO Ideally merge all the Guzzle requests into one generic method.
     // Guzzle Client.
-    $guzzleClient = new GuzzleClient([
+    $guzzleClient = $this->httpClientFactory->fromOptions([
       // TODO Move this into Config?
       'base_uri' => $this->getBaseUrl(),
       'headers' => [
