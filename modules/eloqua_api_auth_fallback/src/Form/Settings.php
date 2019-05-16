@@ -39,9 +39,9 @@ class Settings extends ConfigFormBase {
 
     $form['credentials']['help'] = [
       '#type' => '#markup',
-      '#markup' => $this->t('For more information on authenticate using a resource owner password credentials grant, refer this @link.',
+      '#markup' => $this->t('For more information @link.',
         [
-          '@link' => Link::fromTextAndUrl('https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAB/Developers/GettingStarted/Authentication/authenticate-using-oauth.htm#resource-owner-password-credentials-grant',
+          '@link' => Link::fromTextAndUrl('refer to API Documentation for resource owner password credentials grant',
             Url::fromUri('https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAB/Developers/GettingStarted/Authentication/authenticate-using-oauth.htm#resource-owner-password-credentials-grant'))->toString(),
         ]),
     ];
