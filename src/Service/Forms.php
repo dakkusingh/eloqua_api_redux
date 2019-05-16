@@ -105,6 +105,44 @@ class Forms {
   }
 
   /**
+   * Retrieve a list of forms.
+   *
+   * @param array $queryParams
+   *   Array of query params.
+   *
+   *   - count(optional): integer
+   *     Maximum number of entities to return. Must be less than or equal to
+   *     1000 and greater than or equal to 1.
+   *   - depth(optional): string
+   *     Level of detail returned by the request. Eloqua APIs can retrieve
+   *     entities at three different levels of depth: minimal, partial, and
+   *     complete. Any other values passed are reset to complete by default.
+   *   - lastUpdatedAt(optional): integer
+   *     The date and time the form was last updated.
+   *   - orderBy(optional): string
+   *     Specifies the field by which list results are ordered.
+   *   - page(optional): integer
+   *     Specifies which page of entities to return (the count parameter defines
+   *     the number of entities per page). If the page parameter is not supplied,
+   *     1 will be used by default.
+   *   - search(optional): string
+   *     Specifies the search criteria used to retrieve entities. See the
+   *     tutorial for information about using this parameter.
+   *
+   *   See: https://docs.oracle.com/cloud/latest/marketingcs_gs/OMCAC/op-api-rest-2.0-assets-forms-get.html.
+   *
+   * @return array
+   *   Form array.
+   */
+  public function getForms(array $queryParams = []) {
+    $endpointUrl = '/api/REST/2.0/assets/forms';
+
+    $forms = $this->client->doEloquaApiRequest('GET', $endpointUrl, NULL, $queryParams);
+
+    return $forms;
+  }
+
+  /**
    * Helper method to get all fields for a given form.
    *
    * @param int $formId

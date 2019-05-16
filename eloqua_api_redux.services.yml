@@ -1,7 +1,7 @@
 services:
   eloqua_api_redux.client:
     class: Drupal\eloqua_api_redux\Service\EloquaApiClient
-    arguments: ['@config.factory', '@logger.factory', '@cache.default']
+    arguments: ['@config.factory', '@logger.factory', '@cache.default', '@http_client_factory']
   eloqua_api_redux.auth_fallback_default:
     class: Drupal\eloqua_api_redux\Service\EloquaAuthDefaultFallback
   eloqua_api_redux.contact:
