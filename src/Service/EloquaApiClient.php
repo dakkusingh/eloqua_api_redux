@@ -135,7 +135,19 @@ class EloquaApiClient {
       }
     }
     else {
-      $this->loggerFactory->get('eloqua_api_redux')->error("Refresh Token is expired, Update tokens by visiting Eloqua API settings page.");
+      // If both access and refresh tokens are expired/invalid use fallback
+      // method to generate access and refresh tokens using resource owner
+      // password grant authorization.
+      // Also make sure that auth fallback service implementation exists.
+      $tokenGeneratorService = \Drupal::service('eloqua_api_redux.auth_fallback_default');
+      if ($tokenGeneratorService !== NULL) {
+        $response = $tokenGeneratorService->generateTokensByResourceOwner();
+        if ($response === TRUE && $accessToken = $this->getEloquaApiCache('access_token')) {
+          return $accessToken;
+        }
+      }
+      $this->loggerFactory->get('eloqua_api_redux')
+        ->error("Refresh Token is expired, Update tokens by visiting Eloqua API settings page.");
     }
 
     return FALSE;
@@ -154,7 +166,7 @@ class EloquaApiClient {
    *   a new access token, token type, access token expiration time, and
    *   new refresh token
    */
-  private function doTokenRequest(array $params, $res = 'token') {
+  public function doTokenRequest(array $params, $res = 'token') {
     // Guzzle Client.
     $guzzleClient = $this->httpClientFactory->fromOptions([
       'base_uri' => $this->config->get('api_uri'),
