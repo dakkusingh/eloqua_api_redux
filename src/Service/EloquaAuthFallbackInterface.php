@@ -4,6 +4,8 @@ namespace Drupal\eloqua_api_redux\Service;
 
 /**
  * Interface for elouqa auth fallback using resource owner password grant.
+ *
+ * @package Drupal\eloqua_api_redux\Service
  */
 interface EloquaAuthFallbackInterface {
 
