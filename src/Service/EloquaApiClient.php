@@ -283,7 +283,7 @@ class EloquaApiClient {
    *   The endpoint, when called using basic authentication or OAuth,
    *   will return details about the URLs you should be using.
    */
-  private function doBaseUrlRequest() {
+  protected function doBaseUrlRequest() {
     // TODO Ideally merge all the Guzzle requests into one generic method.
     // Guzzle Client.
     $guzzleClient = $this->httpClientFactory->fromOptions([
@@ -326,7 +326,7 @@ class EloquaApiClient {
    * @return bool
    *   Status.
    */
-  private function setEloquaApiCache($key, $value) {
+  protected function setEloquaApiCache($key, $value) {
     // Save the token.
     $cacheItem = [
       'value' => $value,
@@ -347,7 +347,7 @@ class EloquaApiClient {
    * @return string|false
    *   Cache result.
    */
-  private function getEloquaApiCache($type) {
+  protected function getEloquaApiCache($type) {
     // Check config "cache".
     if ($cache = $this->configTokens->get($type)) {
       $response = unserialize($cache);
