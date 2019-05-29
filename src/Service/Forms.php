@@ -67,12 +67,42 @@ class Forms {
       return [];
     }
 
+    $formData = $this->cleanupFormDataForSubmission($formData);
+
     $newContact = $this->client->doEloquaApiRequest('POST', $endpointUrl, $formData);
     if (!empty($newContact)) {
       return $newContact;
     }
 
     return [];
+  }
+
+  /**
+   * Cleanup form data values before sending to eloqua.
+   *
+   * For multi valued fields e.g. checkboxes, multi-selects drupal webform
+   * submissions will supply them as array of values, However while sending
+   * these values to eloqua 'form data api' the array data values needs
+   * to be converted into comma separated string values.
+   * There isn't any official documentation about handling this type of
+   * data. But looking at data submitted from eloqua admin console for
+   * checkboxes and multi-selects, the values are getting stored in
+   * comma-separated format.
+   *
+   * @param array $formData
+   *   Form data to be checked and cleaned up for array values.
+   *
+   * @return array
+   *   Form data with array values converted into comma separated string.
+   */
+  private function cleanupFormDataForSubmission(array $formData) {
+    array_walk($formData['fieldValues'], function (&$formField) {
+      if (is_array($formField['value'])) {
+        $formField['value'] = implode(',', $formField['value']);
+      }
+      return $formField;
+    });
+    return $formData;
   }
 
   /**
