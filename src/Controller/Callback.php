@@ -59,12 +59,10 @@ class Callback extends ControllerBase {
 
     // If token is not false.
     if ($token != FALSE) {
-      // TODO fix the deprecated drupal_set_message.
-      drupal_set_message('Access tokens saved');
+      $this->messenger()->addMessage($this->t('Access tokens saved'));
     }
     else {
-      // TODO fix the deprecated drupal_set_message.
-      drupal_set_message('Failed to get access token. Check log messages.', 'error');
+      $this->messenger()->addError($this->t('Failed to get access token. Check log messages.'));
     }
 
     return new RedirectResponse(Url::fromRoute('eloqua_api_redux.settings')->toString());
